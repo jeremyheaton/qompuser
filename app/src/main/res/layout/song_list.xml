@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:fancy="http://schemas.android.com/apk/res-auto" xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    tools:context=".SpotifyActivity">
+
+
+        <mehdi.sakout.fancybuttons.FancyButton
+            android:id="@+id/delete_song"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+
+            android:paddingBottom="10dp"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:paddingTop="10dp"
+            android:onClick="removeSongOnClickHandler"
+            fancy:fb_borderColor="#FFFFFF"
+            fancy:fb_borderWidth="1dp"
+            fancy:fb_defaultColor="#7ab800"
+            fancy:fb_iconPosition="left"
+            fancy:fb_radius="15dp"
+            fancy:fb_text="Remove"
+            fancy:fb_textColor="#FFFFFF" />
+    <mehdi.sakout.fancybuttons.FancyButton
+        android:id="@+id/counter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="10dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:paddingTop="10dp"
+        android:onClick="removeSongOnClickHandler"
+        fancy:fb_borderColor="#FFFFFF"
+        fancy:fb_borderWidth="1dp"
+        fancy:fb_defaultColor="#7ab800"
+        fancy:fb_iconPosition="left"
+        fancy:fb_radius="15dp"
+        android:layout_toLeftOf="@id/delete_song"
+        fancy:fb_text="0"
+        fancy:fb_textColor="#FFFFFF" />
+
+<RelativeLayout
+    android:id="@+id/songinfo"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:layout_toLeftOf="@id/counter"
+    android:layout_alignBottom="@+id/delete_song">
+
+        <TextView
+            android:id="@+id/song_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:singleLine="true"
+
+            android:hint="mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm" />
+        <TextView
+            android:id="@+id/artist_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:layout_below="@id/song_name"
+            android:ellipsize="end"
+            android:hint="hellow world" />
+
+</RelativeLayout>
+
+
+
+
+</RelativeLayout>

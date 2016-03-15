@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">MusiQ</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_get_play_lists">GetPlayListsActivity</string>
+</resources>
