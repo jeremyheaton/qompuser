@@ -15,6 +15,7 @@ import com.loopj.android.http.JsonHttpResponseHandler;
 import com.mobeta.android.dslv.DragSortListView;
 import com.mycompany.myapplication.SpotifyController;
 import com.mycompany.myapplication.helpers.Helpers;
+import com.mycompany.myapplication.R;
 import com.mycompany.myapplication.SongListener;
 import com.spotify.sdk.android.player.Config;
 import com.spotify.sdk.android.authentication.AuthenticationClient;
