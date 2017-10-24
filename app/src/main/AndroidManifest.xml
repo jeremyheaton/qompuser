@@ -12,14 +12,14 @@
         android:theme="@style/AppTheme" >
 
         <activity
-            android:name=".SpotifyActivity"
+            android:name=".activities.SpotifyActivity"
             android:screenOrientation="portrait"
             android:label="@string/app_name" >
 
 
         </activity>
 
-        <activity android:label="@string/app_name" android:name=".MainActivity">
+        <activity android:label="@string/app_name" android:name=".activities.MainActivity">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
 
@@ -30,10 +30,6 @@
         <activity
             android:name="com.spotify.sdk.android.authentication.LoginActivity"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-        <activity
-            android:name=".GetPlayListsActivity"
-            android:label="@string/title_activity_get_play_lists" >
-        </activity>
     </application>
 
 </manifest>
