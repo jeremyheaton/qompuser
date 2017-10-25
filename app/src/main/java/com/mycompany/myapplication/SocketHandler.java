@@ -3,8 +3,6 @@ package com.mycompany.myapplication;
 import android.util.Log;
 
 
-import com.mycompany.myapplication.activities.SpotifyActivity;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,10 +19,10 @@ import io.socket.emitter.Emitter;
  */
 public class SocketHandler {
     public static Socket mSocket;
-    private static SpotifyActivity activity;
+    private static SpotifyController controller;
 
-    public SocketHandler(SpotifyActivity spotifyActivity) {
-        activity = spotifyActivity;
+    public SocketHandler(SpotifyController spotifyController) {
+        controller = spotifyController;
     }
 
     public void initialize() throws URISyntaxException {
@@ -51,7 +49,7 @@ public class SocketHandler {
     }
 
     public void subscribe() {
-        mSocket.emit("subscribe", activity.userId);
+        mSocket.emit("subscribe", controller.getSpotifyActivity().userId);
         mSocket.on("fetchplaylist", onFetchPlayList);
         mSocket.on("message", onPlaySong);
         mSocket.on(Socket.EVENT_CONNECT_TIMEOUT, new Emitter.Listener() {
@@ -106,16 +104,16 @@ public class SocketHandler {
     private Emitter.Listener onPlaySong = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
-            activity.runOnUiThread(new Runnable() {
+            controller.getSpotifyActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     JSONObject data = (JSONObject) args[0];
                     Log.d("socket", "song added");
                     try {
                         Songs s = new Songs(data.getString("artist"), data.getString("song"), data.getString("message"));
-                        activity.sl.addSong(s);
+                        controller.getSongList().addSong(s);
                         mSocket.emit("songAdded", "songAdded");
-                        activity.spotifyController.getSongListAdapter().notifyDataSetChanged();
+                        controller.getSongListAdapter().notifyDataSetChanged();
                         //  listView.setAdapter(adapter);
                     } catch (JSONException e) {
                         Log.d("socket", "we hit an error here");
@@ -137,7 +135,7 @@ public class SocketHandler {
     public static JSONObject jsonPlayListBuilder() {
         JSONObject objectHolder = new JSONObject();
         JSONArray json = new JSONArray();
-        for (Songs song : activity.sl.songsList) {
+        for (Songs song : controller.getSongList().songsList) {
             JSONObject object = new JSONObject();
             try {
                 object.put("songname", song.getSong());
@@ -150,7 +148,7 @@ public class SocketHandler {
             }
         }
         try {
-            objectHolder.put("room", activity.userId);
+            objectHolder.put("room", controller.getSpotifyActivity().userId);
             objectHolder.put("songs", json);
         } catch (JSONException e) {
             e.printStackTrace();

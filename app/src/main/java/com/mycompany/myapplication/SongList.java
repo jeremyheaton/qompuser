@@ -20,7 +20,11 @@ public class SongList {
     public List<Songs> songsList = new ArrayList<>();
     public SongListener songListen;
     public boolean votingOn = true;
+    SpotifyController controller;
 
+    public SongList(SpotifyController controller) {
+        this.controller = controller;
+    }
     public void addListener(SongListener sngl) {
         songListen = sngl;
     }
@@ -30,7 +34,7 @@ public class SongList {
             songsList.add(s);
             songListen.songAdded();
         }
-        SpotifyActivity.sockethandler.mSocket.emit("sendplaylist", SocketHandler.jsonPlayListBuilder());
+        controller.getSocketHandler().mSocket.emit("sendplaylist", SocketHandler.jsonPlayListBuilder());
     }
 
     public void popSong() {

@@ -30,7 +30,7 @@ public class SpotifyController implements SpotifyPlayer.NotificationCallback{
 
     public SpotifyController(final SpotifyActivity spotifyActivity, DragSortListView dragSortListView, Config config) {
         this.playerConfig = config;
-        this.songList = new SongList();;
+        this.songList = new SongList(this);;
         this.spotifyActivity = spotifyActivity;
         this.dragSortListView = dragSortListView;
         this.songListAdapter = new SongListAdapter(this.spotifyActivity, R.layout.song_list, songList.songsList) {
@@ -42,7 +42,7 @@ public class SpotifyController implements SpotifyPlayer.NotificationCallback{
                 return view;
             }
         };
-        this.socketHandler = new SocketHandler(this.spotifyActivity);
+        this.socketHandler = new SocketHandler(this);
         try {
             this.socketHandler.initialize();
         } catch (Exception e) {
@@ -108,6 +108,10 @@ public class SpotifyController implements SpotifyPlayer.NotificationCallback{
 
     public SocketHandler getSocketHandler() {
         return socketHandler;
+    }
+
+    public SpotifyActivity getSpotifyActivity() {
+        return spotifyActivity;
     }
 
     private void setPlayer() {

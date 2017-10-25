@@ -37,9 +37,7 @@ public class SpotifyActivity extends Activity implements SongListener, Connectio
     public static Config playerConfig;
     private static final int REQUEST_CODE = 1337;
     CountDownTimer songTimer;
-    public SongList sl = new SongList();
     public String userId ="";
-    public static SocketHandler sockethandler;
     public SpotifyController spotifyController;
 
     @Override
