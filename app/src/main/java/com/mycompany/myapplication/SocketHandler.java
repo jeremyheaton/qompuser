@@ -33,6 +33,7 @@ public class SocketHandler {
         opts.forceNew = true;
         opts.reconnection = true;
         if(mSocket == null){
+
             mSocket = IO.socket("http://192.168.0.23:8888/", opts);
             //mSocket = IO.socket("https://ancient-tor-6266.herokuapp.com/");
         } else {

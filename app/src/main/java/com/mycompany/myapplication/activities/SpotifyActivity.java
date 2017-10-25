@@ -1,6 +1,5 @@
 package com.mycompany.myapplication.activities;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -16,29 +15,29 @@ import com.mobeta.android.dslv.DragSortListView;
 import com.mycompany.myapplication.SpotifyController;
 import com.mycompany.myapplication.helpers.Helpers;
 import com.mycompany.myapplication.R;
+import com.mycompany.myapplication.SocketHandler;
+import com.mycompany.myapplication.SongList;
 import com.mycompany.myapplication.SongListener;
 import com.spotify.sdk.android.player.Config;
 import com.spotify.sdk.android.authentication.AuthenticationClient;
 import com.spotify.sdk.android.authentication.AuthenticationRequest;
 import com.spotify.sdk.android.authentication.AuthenticationResponse;
-import com.spotify.sdk.android.player.Error;
-import com.spotify.sdk.android.player.PlayerEvent;
-import com.spotify.sdk.android.player.Spotify;
-import com.spotify.sdk.android.player.ConnectionStateCallback;
-import com.spotify.sdk.android.player.Player;
+import com.spotify.sdk.android.player.*;
+
 import org.json.*;
 import com.loopj.android.http.*;
-import com.spotify.sdk.android.player.SpotifyPlayer;
+import com.spotify.sdk.android.player.Error;
 
 import cz.msebera.android.httpclient.Header;
 
-public class SpotifyActivity extends Activity implements SongListener, SpotifyPlayer.NotificationCallback, ConnectionStateCallback {
+public class SpotifyActivity extends Activity implements SongListener, ConnectionStateCallback {
     DragSortListView listView;
     private static final String CLIENT_ID = "05a31b738d734867855136eeedd18d0a";
     private static final String REDIRECT_URI = "my-first-android-app-login://callback";
     public static Config playerConfig;
     private static final int REQUEST_CODE = 1337;
     CountDownTimer songTimer;
+    public SongList sl = new SongList();
     public String userId ="";
     public SpotifyController spotifyController;
 
@@ -87,6 +86,7 @@ public class SpotifyActivity extends Activity implements SongListener, SpotifyPl
         Log.d("SpotifyActivity", "User logged out");
     }
 
+
     @Override
     public void onLoginFailed(Error error) {
         TextView fail = (TextView) findViewById(R.id.errorMessage);
@@ -103,35 +103,6 @@ public class SpotifyActivity extends Activity implements SongListener, SpotifyPl
     public void onConnectionMessage(String message) {
         Log.d("SpotifyActivity", "Received connection message: " + message);
     }
-
-    @Override
-    public void onPlaybackEvent(PlayerEvent playerEvent) {
-        if (playerEvent.equals(PlayerEvent.kSpPlaybackNotifyAudioDeliveryDone)) {
-            spotifyController.getSongList().popSong();
-            spotifyController.getSongListAdapter().notifyDataSetChanged();
-            if(spotifyController.getSongList().songsList.size() > 0) {
-                spotifyController.playNext();
-            }
-        }
-
-        if (playerEvent == PlayerEvent.kSpPlaybackNotifyTrackChanged ) {
-            final long timer = spotifyController.getPlayer().getMetadata().currentTrack.durationMs;
-            songTimer = new CountDownTimer(timer, 1000) {
-                public void onTick(long millisUntilFinished) {
-                    TextView t = (TextView) findViewById(R.id.timer);
-                    @SuppressLint("DefaultLocale") String timer = String.format("%02d:%02d", ((spotifyController.getPlayer().getPlaybackState().positionMs / 1000) / 60),
-                            (spotifyController.getPlayer().getPlaybackState().positionMs / 1000) % 60) + "/" +
-                            String.format("%02d:%02d", ((spotifyController.getPlayer().getPlaybackState().positionMs / 1000) / 60),
-                                    (spotifyController.getPlayer().getPlaybackState().positionMs / 1000) % 60);
-                    t.setText(timer);
-                }
-                public void onFinish() {}
-            }.start();
-        }
-
-        Log.d("SpotifyActivity", "Playback event received: " + playerEvent.name());
-    }
-
 
     @Override
     protected void onDestroy() {
@@ -230,12 +201,6 @@ public class SpotifyActivity extends Activity implements SongListener, SpotifyPl
         super.onPause();
         Log.d("socket", "pause");
     }
-
-    @Override
-    public void onPlaybackError(Error error) {
-        Log.d("SpotifyActivity", "Playback error received: " + error.name());
-    }
-
 
     public boolean handleAuth(int requestCode, SpotifyActivity spotifyActivity, int resultCode, Intent intent) {
         if (requestCode == REQUEST_CODE) {

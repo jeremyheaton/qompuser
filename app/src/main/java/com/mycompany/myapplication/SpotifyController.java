@@ -8,17 +8,17 @@ import android.widget.TextView;
 import com.mobeta.android.dslv.DragSortListView;
 import com.mycompany.myapplication.activities.SpotifyActivity;
 import com.spotify.sdk.android.player.Config;
+import com.spotify.sdk.android.player.Error;
 import com.spotify.sdk.android.player.Player;
+import com.spotify.sdk.android.player.PlayerEvent;
 import com.spotify.sdk.android.player.Spotify;
 import com.spotify.sdk.android.player.SpotifyPlayer;
-
-import java.net.URISyntaxException;
 
 /**
  * Created by jerem on 10/23/2017.
  */
 
-public class SpotifyController {
+public class SpotifyController implements SpotifyPlayer.NotificationCallback{
 
     final SongList songList;
     final SpotifyActivity spotifyActivity;
@@ -82,7 +82,7 @@ public class SpotifyController {
 
     public void playNext() {
         if (songList.songsList.size() > 1) {
-            songList.songsList.remove(0);
+            songList.popSong();
             songListAdapter.notifyDataSetChanged();
         }
         if (songList.songsList.size() > 0) {
@@ -115,8 +115,8 @@ public class SpotifyController {
             @Override
             public void onInitialized(SpotifyPlayer player) {
                 SpotifyController.this.player = player;
-                SpotifyController.this.player.addConnectionStateCallback(spotifyActivity);
-                SpotifyController.this.player.addNotificationCallback(spotifyActivity);
+                SpotifyController.this.player.addConnectionStateCallback(SpotifyController.this.spotifyActivity);
+                SpotifyController.this.player.addNotificationCallback(SpotifyController.this);
             }
 
             @Override
@@ -124,5 +124,38 @@ public class SpotifyController {
                 Log.e("SpotifyActivity", "Could not initialize player: " + throwable.getMessage());
             }
         });
+    }
+
+    @Override
+    public void onPlaybackEvent(PlayerEvent playerEvent) {
+        if (playerEvent.equals(PlayerEvent.kSpPlaybackNotifyAudioDeliveryDone)) {
+            getSongList().popSong();
+            getSongListAdapter().notifyDataSetChanged();
+            if(getSongList().songsList.size() > 0) {
+                playNext();
+            }
+        }
+
+        if (playerEvent == PlayerEvent.kSpPlaybackNotifyTrackChanged ) {
+            final long timer = getPlayer().getMetadata().currentTrack.durationMs;
+//            songTimer = new CountDownTimer(timer, 1000) {
+//                public void onTick(long millisUntilFinished) {
+//                    TextView t = (TextView) findViewById(R.id.timer);
+//                    @SuppressLint("DefaultLocale") String timer = String.format("%02d:%02d", ((getPlayer().getPlaybackState().positionMs / 1000) / 60),
+//                            (getPlayer().getPlaybackState().positionMs / 1000) % 60) + "/" +
+//                            String.format("%02d:%02d", ((getPlayer().getPlaybackState().positionMs / 1000) / 60),
+//                                    (getPlayer().getPlaybackState().positionMs / 1000) % 60);
+//                    t.setText(timer);
+//                }
+//                public void onFinish() {}
+//            }.start();
+        }
+
+        Log.d("SpotifyActivity", "Playback event received: " + playerEvent.name());
+    }
+
+    @Override
+    public void onPlaybackError(Error error) {
+
     }
 }
