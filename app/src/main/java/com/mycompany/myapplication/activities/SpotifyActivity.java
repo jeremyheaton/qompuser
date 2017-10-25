@@ -39,6 +39,7 @@ public class SpotifyActivity extends Activity implements SongListener, Connectio
     CountDownTimer songTimer;
     public SongList sl = new SongList();
     public String userId ="";
+    public static SocketHandler sockethandler;
     public SpotifyController spotifyController;
 
     @Override
