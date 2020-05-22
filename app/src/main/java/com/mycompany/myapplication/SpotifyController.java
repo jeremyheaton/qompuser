@@ -2,11 +2,13 @@ package com.mycompany.myapplication;
 
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
 
 import com.mobeta.android.dslv.DragSortListView;
+import com.mycompany.myapplication.SongUtils.SongChangeListener;
+import com.mycompany.myapplication.SongUtils.SongList;
+import com.mycompany.myapplication.SongUtils.SongListAdapter;
 import com.mycompany.myapplication.activities.SpotifyActivity;
+import com.mycompany.myapplication.models.Song;
 import com.spotify.sdk.android.player.Config;
 import com.spotify.sdk.android.player.Error;
 import com.spotify.sdk.android.player.Player;
@@ -18,30 +20,22 @@ import com.spotify.sdk.android.player.SpotifyPlayer;
  * Created by jerem on 10/23/2017.
  */
 
-public class SpotifyController implements SpotifyPlayer.NotificationCallback{
+public class SpotifyController implements SongChangeListener, SpotifyPlayer.NotificationCallback {
 
-    final SongList songList;
-    final SpotifyActivity spotifyActivity;
-    final SongListAdapter songListAdapter;
-    final DragSortListView dragSortListView;
-    final SocketHandler socketHandler;
+    private final SongList songList;
+    private final SpotifyActivity spotifyActivity;
+    private final SongListAdapter songListAdapter;
+    private final DragSortListView dragSortListView;
+    private final SocketHandler socketHandler;
     private Config playerConfig;
     private Player player;
 
     public SpotifyController(final SpotifyActivity spotifyActivity, DragSortListView dragSortListView, Config config) {
         this.playerConfig = config;
-        this.songList = new SongList(this);;
+        this.songList = new SongList(this);
         this.spotifyActivity = spotifyActivity;
         this.dragSortListView = dragSortListView;
-        this.songListAdapter = new SongListAdapter(this.spotifyActivity, R.layout.song_list, songList.songsList) {
-            @Override
-            public View getView(int position, View convertView, ViewGroup parent) {
-                View view = super.getView(position, convertView, parent);
-                Songs song = getItem(position);
-                ((TextView) view.findViewById(R.id.song_name)).setText(song.getSong());
-                return view;
-            }
-        };
+        this.songListAdapter = new SongListAdapter(this.spotifyActivity, R.layout.song_list, songList);
         this.socketHandler = new SocketHandler(this);
         try {
             this.socketHandler.initialize();
@@ -49,45 +43,39 @@ public class SpotifyController implements SpotifyPlayer.NotificationCallback{
             e.printStackTrace();
         }
         setPlayer();
-
         this.intialize();
     }
 
     private void intialize() {
-        songList.addListener(spotifyActivity);
         dragSortListView.setAdapter(songListAdapter);
-        final SongListAdapter finalSongListAdapter = songListAdapter;
-
-        dragSortListView.setDropListener(new DragSortListView.DropListener() {
-            @Override
-            public void drop(int from, int to) {
-                Songs movedItem = songList.songsList.get(from);
-                songList.songsList.remove(from);
-                if (from > to) --from;
-                songList.songsList.add(to, movedItem);
-                finalSongListAdapter.notifyDataSetChanged();
-                if (from == 0 || to == 0 && from != to) {
-                    SpotifyController.this.playTrack(songList.songsList.get(0).getId());
-                }
+        dragSortListView.setDropListener((from, to) -> {
+            Song movedItem = songList.getSongs().get(from);
+            songList.getSongs().remove(from);
+            if (from > to) --from;
+            songList.getSongs().add(to, movedItem);
+            songListAdapter.notifyDataSetChanged();
+            if (from == 0 || to == 0) {
+                SpotifyController.this.playTrack(songList.getSongs().get(0).getId());
             }
         });
     }
 
-    public void  playTrack(String track) {
+    private void playTrack(String track) {
         songList.sortSongs();
         player.playUri(null, "spotify:track:" + track, 0, 0);
-        socketHandler.onFetchPlayList.call();
+        socketHandler.sendPlayList();
         songListAdapter.notifyDataSetChanged();
     }
 
     public void playNext() {
-        if (songList.songsList.size() > 1) {
-            songList.popSong();
-            songListAdapter.notifyDataSetChanged();
+        if (songList.size() > 0) {
+            playTrack(songList.next());
         }
-        if (songList.songsList.size() > 0) {
-            playTrack(songList.songsList.get(0).getId());
-        }
+    }
+
+    public void songFinished() {
+        songList.removeSong();
+        playNext();
     }
 
     public SongList getSongList() {
@@ -110,7 +98,7 @@ public class SpotifyController implements SpotifyPlayer.NotificationCallback{
         return socketHandler;
     }
 
-    public SpotifyActivity getSpotifyActivity() {
+    SpotifyActivity getSpotifyActivity() {
         return spotifyActivity;
     }
 
@@ -133,14 +121,12 @@ public class SpotifyController implements SpotifyPlayer.NotificationCallback{
     @Override
     public void onPlaybackEvent(PlayerEvent playerEvent) {
         if (playerEvent.equals(PlayerEvent.kSpPlaybackNotifyAudioDeliveryDone)) {
-            getSongList().popSong();
-            getSongListAdapter().notifyDataSetChanged();
-            if(getSongList().songsList.size() > 0) {
-                playNext();
-            }
+            songFinished();
         }
 
-        if (playerEvent == PlayerEvent.kSpPlaybackNotifyTrackChanged ) {
+        if (playerEvent == PlayerEvent.kSpPlaybackNotifyTrackChanged) {
+            Log.d("player", player.getMetadata().toString());
+            Log.d("player", player.getMetadata().currentTrack.toString());
             final long timer = getPlayer().getMetadata().currentTrack.durationMs;
 //            songTimer = new CountDownTimer(timer, 1000) {
 //                public void onTick(long millisUntilFinished) {
@@ -158,8 +144,56 @@ public class SpotifyController implements SpotifyPlayer.NotificationCallback{
         Log.d("SpotifyActivity", "Playback event received: " + playerEvent.name());
     }
 
+    //        controller.getSocketHandler().mSocket.emit("sendplaylist", SocketHandler.jsonPlayListBuilder());
     @Override
     public void onPlaybackError(Error error) {
 
     }
+
+    @Override
+    public void songAdded() {
+        if (songList.size() == 1) {
+            playNext();
+        }
+    }
+
+    @Override
+    public void songRemoved() {
+        songListAdapter.notifyDataSetChanged();
+    }
+
+    public void removeSongOnClickHandler(View v) {
+        View parentRow = (View) v.getParent().getParent();
+        DragSortListView listView2 = (DragSortListView) parentRow.getParent();
+        int position = listView2.getPositionForView(parentRow);
+        if (position == 0) {
+            player.skipToNext(new Player.OperationCallback() {
+                @Override
+                public void onSuccess() {
+
+                }
+
+                @Override
+                public void onError(Error error) {
+
+                }
+            });
+        } else {
+            songList.getSongs().remove(position);
+        }
+        songListAdapter.notifyDataSetChanged();
+    }
+
+    public Config getConfig() {
+        return playerConfig;
+    }
+
+    public void destoryController() {
+        Spotify.destroyPlayer(this);
+        if (socketHandler != null) {
+            socketHandler.mSocket.off();
+            socketHandler.mSocket.disconnect();
+        }
+    }
+
 }

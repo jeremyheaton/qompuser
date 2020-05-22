@@ -2,6 +2,7 @@ package com.mycompany.myapplication;
 
 import android.util.Log;
 
+import com.mycompany.myapplication.models.Song;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -17,125 +18,83 @@ import io.socket.emitter.Emitter;
 /**
  * Created by Jeremy on 2/26/2016.
  */
-public class SocketHandler {
-    public static Socket mSocket;
-    private static SpotifyController controller;
+class SocketHandler {
+    Socket mSocket;
+    private SpotifyController controller;
 
-    public SocketHandler(SpotifyController spotifyController) {
+    SocketHandler(SpotifyController spotifyController) {
         controller = spotifyController;
     }
 
-    public void initialize() throws URISyntaxException {
+
+    private Emitter.Listener onFetchToken = (Object... objects) -> {
+        Log.d("testing", "seeing if fetch is read");
+        mSocket.emit("sendtoken", buildAuthResponse());
+    };
+    private Emitter.Listener onFetchPlayList = (Object... args) -> {
+        Log.d("socket", "send da playlist");
+        sendPlayList();
+    };
+    private Emitter.Listener addSong = (Object... args) -> {
+        controller.getSpotifyActivity().runOnUiThread(() -> {
+            JSONObject data = (JSONObject) args[0];
+            Log.d("socket", "song added");
+            try {
+                Song s = new Song(data.getString("artist"), data.getString("song"), data.getString("message"));
+                controller.getSongList().addSong(s);
+                sendPlayList();
+                controller.getSongListAdapter().notifyDataSetChanged();
+
+            } catch (JSONException e) {
+                Log.d("socket", "we hit an error here");
+            }
+        });
+        // add the message to view
+    };
+
+    void initialize() throws URISyntaxException {
 
         IO.Options opts = new IO.Options();
         opts.forceNew = true;
         opts.reconnection = true;
-        if(mSocket == null){
-
-            mSocket = IO.socket("http://192.168.0.23:8888/", opts);
+        if (mSocket == null) {
+            mSocket = IO.socket("https://ancient-tor-6266.herokuapp.com/", opts);
             //mSocket = IO.socket("https://ancient-tor-6266.herokuapp.com/");
         } else {
             mSocket.close();
-            mSocket = IO.socket("http://192.168.0.23:8888/", opts);
+            mSocket = IO.socket("https://ancient-tor-6266.herokuapp.com/", opts);
             //mSocket = IO.socket("https://ancient-tor-6266.herokuapp.com/");
         }
         connect();
         subscribe();
     }
 
-
-    public void connect() {
+    private void connect() {
         mSocket.connect();
     }
 
-    public void subscribe() {
+    private void subscribe() {
         mSocket.emit("subscribe", controller.getSpotifyActivity().userId);
         mSocket.on("fetchplaylist", onFetchPlayList);
-        mSocket.on("message", onPlaySong);
-        mSocket.on(Socket.EVENT_CONNECT_TIMEOUT, new Emitter.Listener() {
-            @Override
-            public void call(Object... objects) {
-                Log.d("socket", "Connect to application");
-                try {
-                    initialize();
-                } catch (URISyntaxException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
-        mSocket.on(Socket.EVENT_CONNECT_ERROR, new Emitter.Listener() {
-            @Override
-            public void call(Object... objects) {
-                Log.d("socket", "event connect error");
-                try {
-                    initialize();
-                } catch (URISyntaxException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
-        mSocket.on(Socket.EVENT_ERROR, new Emitter.Listener() {
-            @Override
-            public void call(Object... objects) {
-                Log.d("socket", "event error");
-                try {
-                    initialize();
-                } catch (URISyntaxException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
-        mSocket.on(Socket.EVENT_RECONNECTING, new Emitter.Listener() {
-            @Override
-            public void call(Object... objects) {
-                Log.d("socket", "event reconnecting");
-                try {
-                    initialize();
-                } catch (URISyntaxException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+        mSocket.on("message", addSong);
+        mSocket.on("fetchtoken", onFetchToken);
     }
 
-    private Emitter.Listener onPlaySong = new Emitter.Listener() {
-        @Override
-        public void call(final Object... args) {
-            controller.getSpotifyActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    JSONObject data = (JSONObject) args[0];
-                    Log.d("socket", "song added");
-                    try {
-                        Songs s = new Songs(data.getString("artist"), data.getString("song"), data.getString("message"));
-                        controller.getSongList().addSong(s);
-                        mSocket.emit("songAdded", "songAdded");
-                        controller.getSongListAdapter().notifyDataSetChanged();
-                        //  listView.setAdapter(adapter);
-                    } catch (JSONException e) {
-                        Log.d("socket", "we hit an error here");
-                    }
-                    // add the message to view
-                }
-            });
+    private JSONObject buildAuthResponse() {
+        JSONObject object = new JSONObject();
+        try {
+            object.put("room", controller.getSpotifyActivity().userId);
+            object.put("token", controller.getConfig().oauthToken);
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
-    };
+        return object;
+    }
 
-    public static Emitter.Listener onFetchPlayList = new Emitter.Listener() {
-        @Override
-        public void call(final Object... args) {
-            Log.d("socket", "send da playlist");
-            mSocket.emit("sendplaylist", jsonPlayListBuilder());
-        }
-    };
-
-    public static JSONObject jsonPlayListBuilder() {
+    private JSONObject jsonPlayListBuilder() {
         JSONObject objectHolder = new JSONObject();
         JSONArray json = new JSONArray();
-        for (Songs song : controller.getSongList().songsList) {
+        for (Song song : controller.getSongList().getSongs()) {
             JSONObject object = new JSONObject();
             try {
                 object.put("songname", song.getSong());
@@ -154,5 +113,9 @@ public class SocketHandler {
             e.printStackTrace();
         }
         return objectHolder;
+    }
+
+    void sendPlayList() {
+        mSocket.emit("sendplaylist", jsonPlayListBuilder());
     }
 }
