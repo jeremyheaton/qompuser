@@ -16,6 +16,9 @@ import com.spotify.sdk.android.player.PlayerEvent;
 import com.spotify.sdk.android.player.Spotify;
 import com.spotify.sdk.android.player.SpotifyPlayer;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
  * Created by jerem on 10/23/2017.
  */
@@ -155,6 +158,21 @@ public class SpotifyController implements SongChangeListener, SpotifyPlayer.Noti
         if (songList.size() == 1) {
             playNext();
         }
+    }
+
+    public void songAdded(Object... args) {
+        getSpotifyActivity().runOnUiThread(() -> {
+            JSONObject data = (JSONObject) args[0];
+            Log.d("socket", "song added");
+            try {
+                Song s = new Song(data.getString("artist"), data.getString("song"), data.getString("message"));
+                getSongList().addSong(s);
+                getSongListAdapter().notifyDataSetChanged();
+                socketHandler.sendPlayList();
+            } catch (JSONException e) {
+                Log.d("socket", "we hit an error here");
+            }
+        });
     }
 
     @Override

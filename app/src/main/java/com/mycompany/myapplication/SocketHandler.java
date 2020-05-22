@@ -36,20 +36,7 @@ class SocketHandler {
         sendPlayList();
     };
     private Emitter.Listener addSong = (Object... args) -> {
-        controller.getSpotifyActivity().runOnUiThread(() -> {
-            JSONObject data = (JSONObject) args[0];
-            Log.d("socket", "song added");
-            try {
-                Song s = new Song(data.getString("artist"), data.getString("song"), data.getString("message"));
-                controller.getSongList().addSong(s);
-                sendPlayList();
-                controller.getSongListAdapter().notifyDataSetChanged();
-
-            } catch (JSONException e) {
-                Log.d("socket", "we hit an error here");
-            }
-        });
-        // add the message to view
+        controller.songAdded(args);
     };
 
     void initialize() throws URISyntaxException {
